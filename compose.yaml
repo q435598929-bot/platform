@@ -1,0 +1,100 @@
+name: platform
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: platform
+      MYSQL_USER: ${PLATFORM_DB_USER:-platform}
+      MYSQL_PASSWORD: ${PLATFORM_DB_PASSWORD:?Set PLATFORM_DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${PLATFORM_DB_ROOT_PASSWORD:?Set PLATFORM_DB_ROOT_PASSWORD in .env}
+      TZ: Asia/Shanghai
+    volumes:
+      - platform-mysql:/var/lib/mysql
+    ports:
+      - "${PLATFORM_DB_PORT:-3307}:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 25s
+    restart: unless-stopped
+
+  platform-server:
+    build: ./apps/platform/platform-server
+    environment:
+      PLATFORM_REGISTRY_FILE: /config/applications.compose.yml
+      PLATFORM_DATASOURCE_URL: jdbc:mysql://mysql:3306/platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      PLATFORM_DATASOURCE_USERNAME: ${PLATFORM_DB_USER:-platform}
+      PLATFORM_DATASOURCE_PASSWORD: ${PLATFORM_DB_PASSWORD:?Set PLATFORM_DB_PASSWORD in .env}
+      PLATFORM_JWT_SECRET: ${PLATFORM_JWT_SECRET:?Set PLATFORM_JWT_SECRET in .env}
+      PLATFORM_ADMIN_USERNAME: ${PLATFORM_ADMIN_USERNAME:-admin}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:?Set PLATFORM_ADMIN_PASSWORD in .env}
+    volumes:
+      - ./registry:/config:ro
+      - ./:/workspace:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "${PLATFORM_SERVER_PORT:-9090}:9090"
+    depends_on:
+      mysql: { condition: service_healthy }
+    restart: unless-stopped
+
+  ai-server:
+    build: ./apps/ai/ai-server
+    environment:
+      AI_SERVER_PORT: 8081
+      PLATFORM_DATASOURCE_URL: jdbc:mysql://mysql:3306/platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      PLATFORM_DATASOURCE_USERNAME: ${PLATFORM_DB_USER:-platform}
+      PLATFORM_DATASOURCE_PASSWORD: ${PLATFORM_DB_PASSWORD:?Set PLATFORM_DB_PASSWORD in .env}
+      AI_ENCRYPTION_KEY: ${AI_ENCRYPTION_KEY:?Set AI_ENCRYPTION_KEY in .env}
+      PLATFORM_JWT_SECRET: ${PLATFORM_JWT_SECRET:?Set PLATFORM_JWT_SECRET in .env}
+      AI_CORS_ALLOWED_ORIGIN: http://localhost:${AI_WEB_PORT:-9092}
+      AI_PROXY_ENABLED: ${AI_PROXY_ENABLED:-false}
+      AI_PROXY_HOST: ${AI_PROXY_HOST:-host.docker.internal}
+      AI_PROXY_PORT: ${AI_PROXY_PORT:-7897}
+    ports:
+      - "${AI_SERVER_PORT:-8081}:8081"
+    depends_on:
+      mysql: { condition: service_healthy }
+    restart: unless-stopped
+
+  task-server:
+    build: ./apps/task/task-server
+    environment:
+      TASK_SERVER_PORT: 8082
+      PLATFORM_DATASOURCE_URL: jdbc:mysql://mysql:3306/platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      PLATFORM_DATASOURCE_USERNAME: ${PLATFORM_DB_USER:-platform}
+      PLATFORM_DATASOURCE_PASSWORD: ${PLATFORM_DB_PASSWORD:?Set PLATFORM_DB_PASSWORD in .env}
+      PLATFORM_JWT_SECRET: ${PLATFORM_JWT_SECRET:?Set PLATFORM_JWT_SECRET in .env}
+      TASK_CORS_ALLOWED_ORIGIN: http://localhost:${TASK_WEB_PORT:-9093}
+    volumes:
+      - ./data/task/input:/workspace/input
+      - ./data/task/output:/workspace/output
+    ports:
+      - "${TASK_SERVER_PORT:-8082}:8082"
+    depends_on:
+      mysql: { condition: service_healthy }
+    restart: unless-stopped
+
+  platform-web:
+    build: ./apps/platform/platform-web
+    ports: ["${PLATFORM_WEB_PORT:-9091}:80"]
+    depends_on: [platform-server]
+    restart: unless-stopped
+  ai-web:
+    build: ./apps/ai/ai-web
+    ports: ["${AI_WEB_PORT:-9092}:80"]
+    depends_on: [ai-server]
+    restart: unless-stopped
+  task-web:
+    build: ./apps/task/task-web
+    ports: ["${TASK_WEB_PORT:-9093}:80"]
+    depends_on: [task-server]
+    restart: unless-stopped
+
+volumes:
+  platform-mysql:
+    # Preserve the existing Docker volume while the logical database is renamed.
+    name: service-platform_service-platform-mysql

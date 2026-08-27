@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+
+    <!-- Console appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <charset>${CONSOLE_CHARSET:-GBK}</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] [%thread] %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+        Rolling file appender.
+        Each task sets System.setProperty("taskName", "...") in a static initializer
+        before LoggerFactory.getLogger() is called, so ${taskName} is resolved correctly
+        at Logback startup time.
+
+        Active log  : log/{taskName}.log
+        Archive logs: log/{yyyy-MM-dd}/{taskName}.log.gz  (compressed, kept 30 days)
+    -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>log/${taskName:-task-executor}.log</file>
+        <append>true</append>
+        <immediateFlush>true</immediateFlush>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>log/%d{yyyy-MM-dd}/${taskName:-task-executor}.log.gz</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] [%thread] %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>

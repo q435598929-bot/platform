@@ -1,0 +1,47 @@
+applications:
+  - id: platform
+    sortOrder: 10
+    name: Service Platform
+    description: 统一应用目录、组件元数据与本地生命周期控制
+    category: PLATFORM
+    sourceRoot: /workspace
+    runtime: LOCAL_PROCESS
+    lifecycleEnabled: false
+    links:
+      - { name: 平台页面, url: http://localhost:9091 }
+    components:
+      - { id: platform-server, name: Platform Server, kind: SERVER, sourcePath: apps/platform/platform-server, technology: Java 21 / Spring Boot }
+      - { id: platform-web, name: Platform Web, kind: WEB, sourcePath: apps/platform/platform-web, technology: React / TypeScript / Ant Design }
+  - id: ai
+    sortOrder: 20
+    name: AI Application
+    description: AI 服务商、模型、统一调用、对话与用量统计
+    category: AI
+    sourceRoot: /workspace
+    runtime: DOCKER_COMPOSE
+    lifecycleEnabled: true
+    startCommand: [docker, start, platform-ai-server-1, platform-ai-web-1]
+    stopCommand: [docker, stop, platform-ai-web-1, platform-ai-server-1]
+    statusCommand: [docker, ps, --filter, name=platform-ai-server-1, --filter, name=platform-ai-web-1, --filter, status=running, --format, "{{.ID}}"]
+    links:
+      - { name: AI 页面, url: http://localhost:9092 }
+      - { name: 接口文档, url: http://localhost:8081/swagger-ui.html }
+    components:
+      - { id: ai-server, name: AI Server, kind: SERVER, sourcePath: apps/ai/ai-server, technology: Java 21 / Spring Boot }
+      - { id: ai-web, name: AI Web, kind: WEB, sourcePath: apps/ai/ai-web, technology: React / TypeScript / Ant Design }
+  - id: task
+    sortOrder: 30
+    name: Task Application
+    description: 批任务登记、参数配置、受控执行与历史管理
+    category: TASK
+    sourceRoot: /workspace
+    runtime: DOCKER_COMPOSE
+    lifecycleEnabled: true
+    startCommand: [docker, start, platform-task-server-1, platform-task-web-1]
+    stopCommand: [docker, stop, platform-task-web-1, platform-task-server-1]
+    statusCommand: [docker, ps, --filter, name=platform-task-server-1, --filter, name=platform-task-web-1, --filter, status=running, --format, "{{.ID}}"]
+    links:
+      - { name: Task 页面, url: http://localhost:9093 }
+    components:
+      - { id: task-server, name: Task Server, kind: SERVER, sourcePath: apps/task/task-server, technology: Java 21 / Spring Boot }
+      - { id: task-web, name: Task Web, kind: WEB, sourcePath: apps/task/task-web, technology: React / TypeScript / Ant Design }

@@ -1,0 +1,16 @@
+{
+  "name": "platform",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/platform/platform-web",
+    "apps/ai/ai-web",
+    "apps/task/task-web"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace platform-web",
+    "dev:ai": "npm run dev --workspace ai-web",
+    "dev:task": "npm run dev --workspace task-web",
+    "build:web": "npm run build --workspaces --if-present"
+  }
+}

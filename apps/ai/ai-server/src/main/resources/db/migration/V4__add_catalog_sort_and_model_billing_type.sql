@@ -1,0 +1,7 @@
+ALTER TABLE ai_provider
+  ADD COLUMN sort_order INT NOT NULL DEFAULT 0 AFTER enabled;
+
+ALTER TABLE ai_model
+  ADD COLUMN sort_order INT NOT NULL DEFAULT 0 AFTER enabled,
+  ADD COLUMN is_free BOOLEAN NOT NULL DEFAULT TRUE AFTER sort_order;
+
